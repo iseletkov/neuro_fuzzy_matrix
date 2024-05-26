@@ -309,6 +309,7 @@ class NFM():
                         numerator += x*y
                         denominator += y
                     predicates.centre=numerator/denominator
+                    # print(features.name, predicates.name, predicates.centre)
 
 
 

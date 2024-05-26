@@ -22,7 +22,7 @@ nfm.defuzzification = "Simple"
 # nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 150, True)
 f_flow = nfm.create_feature("Расход", "м3/ч", 0, 8, True)
-f_pressure = nfm.create_feature("Давление", "МПа", 0, 200, False)
+f_pressure = nfm.create_feature("Давление", "МПа", -100, 200, False)
 p_temp_low = nfm.create_predicate(f_temp, 'низкая', func = Points, params = [(0,0), (0,1), (50,1), (100,0)])
 p_temp_normal = nfm.create_predicate(f_temp, 'средняя', func = Points, params = [(0,0), (50,1), (100,1),(150,0)])
 p_temp_high = nfm.create_predicate(f_temp, 'высокая', func = Points, params = [(50,0), (100,1), (150,1), (150,0)])
