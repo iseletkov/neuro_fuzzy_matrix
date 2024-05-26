@@ -344,13 +344,6 @@ class NFM():
                     inputs = rule.inputs
                     out=rule.output
                     if out.const is None:
-                    #     xarr = out.feature.linspace  
-                    #     numerator=0
-                    #     denominator=0            
-                    #     for x in xarr:
-                    #         y = out.scalar(x)
-                    #         numerator += x*y
-                    #         denominator += y
                         error=error/(self.Y[row] - out.centre)  
                     else:
                         error=error/(self.Y[row] - out.const)
