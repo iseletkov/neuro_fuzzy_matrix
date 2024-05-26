@@ -207,13 +207,6 @@ class Matrix():
                     # print("rule.truth.truth: ", rule.truth.truth)
                     denominator += rule.truth.truth 
 
-            # # Упрощённый метод дефазификации 
-            # for rule in rules:
-            #     numerator += (rule.output.vector().conjunction(rule.truth)).truth
-            #     # rule.truth - степень реализации правила в виде вектора, 
-            #     # rule.truth.truth - истинностная координата вектора степени реализации правила.
-            #     denominator += rule.truth.truth 
-
             if denominator!=0:
                 result=numerator/denominator
             else:
@@ -333,7 +326,18 @@ class NFM():
                 for rule in self.rules:
                     inputs = rule.inputs
                     out=rule.output
-                    error=error/(out.feature.max-out.feature.min)
+                    if out.const is None:
+                        xarr = out.feature.linspace  
+                        numerator=0
+                        denominator=0            
+                        for x in xarr:
+                            y = out.scalar(x)
+                            numerator += x*y
+                            denominator += y
+                        error=error/(self.Y[row] - numerator/denominator)  
+                    else:
+                        error=error/(self.Y[row] - out.const)
+                    # error=error/(out.feature.max-out.feature.min)
                     for input in inputs:
                         # значение смещения
                         dE_dP=k*error*rule.truth.truth*input.vector(input.feature.value).truth

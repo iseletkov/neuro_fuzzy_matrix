@@ -11,15 +11,15 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # Путь к файлу относительно текущей директории
 file_path = os.path.join(current_dir, "output.txt")
 
-# ts = np.loadtxt(file_path, usecols=[0,1,2])
-# X = ts[:,0:2]
-# Y = ts[:,2]
-X=np.array([[70, 3.8]])
-Y=[69.64384]
+ts = np.loadtxt(file_path, usecols=[0,1,2])
+X = ts[:,0:2]
+Y = ts[:,2]
+# X=np.array([[70, 3.8]])
+# Y=[69.64384]
 
 nfm = NFuzMatrix2.NFM(X, Y)
-nfm.defuzzification = "Simple"
-# nfm.defuzzification = "Centroid"
+# nfm.defuzzification = "Simple"
+nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 150, True)
 f_flow = nfm.create_feature("Расход", "м3/ч", 0, 8, True)
 f_pressure = nfm.create_feature("Давление", "МПа", 0, 200, False)
@@ -32,16 +32,16 @@ p_flow_high = nfm.create_predicate(f_flow, 'большой', func = Points, para
 p_pressure_low = nfm.create_predicate(f_pressure, 'низкое', const=0)
 p_pressure_normal = nfm.create_predicate(f_pressure, 'среднее', const=50)
 p_pressure_high = nfm.create_predicate(f_pressure, 'высокое', const=100)
-# p_pressure_low = nfm.create_predicate(f_pressure, 'низкое', func = Points, params = [(-100,0), (0,1), (100,0)])
-# p_pressure_normal = nfm.create_predicate(f_pressure, 'среднее', func = Points, params = [(0,0), (50,1), (100,0)])
-# p_pressure_high = nfm.create_predicate(f_pressure, 'высокое', func = Points, params = [(0,0), (100,1), (200,0)])
+p_pressure_low = nfm.create_predicate(f_pressure, 'низкое', func = Points, params = [(-100,0), (0,1), (100,0)])
+p_pressure_normal = nfm.create_predicate(f_pressure, 'среднее', func = Points, params = [(0,0), (50,1), (100,0)])
+p_pressure_high = nfm.create_predicate(f_pressure, 'высокое', func = Points, params = [(0,0), (100,1), (200,0)])
 r_1 = nfm.create_rule([p_temp_low, p_flow_low], p_pressure_low, 1)
 r_2 = nfm.create_rule([p_temp_normal], p_pressure_normal, 1)
 r_3 = nfm.create_rule([p_temp_high], p_pressure_high, 1)
 r_4 = nfm.create_rule([p_flow_high], p_pressure_high, 1)
 
 # nfm.show_view()
-nfm.train(epochs=150, k=0.0001)
+nfm.train(epochs=135, k=0.0001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
