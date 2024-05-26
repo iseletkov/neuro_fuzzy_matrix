@@ -119,6 +119,7 @@ class FuzzyPredicate():
         #Для центроидного метода дефаззификации
         self.func = func
         self.params = params
+        centre = None
         #Для упрощённого метода дефаззификации
         self.const = const
 
@@ -296,6 +297,21 @@ class NFM():
         params.sort(key=lambda x: x[0])
         return params
 
+    def centre_mass_out(self):
+        for features in self.features_out:
+            for predicates in features.predicates:
+                if predicates.const is None:
+                    xarr = features.linspace  
+                    numerator=0
+                    denominator=0            
+                    for x in xarr:
+                        y = predicates.scalar(x)
+                        numerator += x*y
+                        denominator += y
+                    predicates.centre=numerator/denominator
+
+
+
     # обучение mini-batch learning, stochastic gradient descent, обучение по каждому множеству
     # количество эпох обучения, точность обучения, скорость обучения
     def train(self, epochs=5, tolerance=1e-1, k=0.001):
@@ -305,6 +321,7 @@ class NFM():
         
         convergence = False
         epoch = 0
+        self.centre_mass_out()
         while (epoch < epochs) and (convergence is not True):            
             self.matrix_y=[]
             # проход по каждому множеству
@@ -327,14 +344,14 @@ class NFM():
                     inputs = rule.inputs
                     out=rule.output
                     if out.const is None:
-                        xarr = out.feature.linspace  
-                        numerator=0
-                        denominator=0            
-                        for x in xarr:
-                            y = out.scalar(x)
-                            numerator += x*y
-                            denominator += y
-                        error=error/(self.Y[row] - numerator/denominator)  
+                    #     xarr = out.feature.linspace  
+                    #     numerator=0
+                    #     denominator=0            
+                    #     for x in xarr:
+                    #         y = out.scalar(x)
+                    #         numerator += x*y
+                    #         denominator += y
+                        error=error/(self.Y[row] - out.centre)  
                     else:
                         error=error/(self.Y[row] - out.const)
                     # error=error/(out.feature.max-out.feature.min)
