@@ -1,6 +1,9 @@
-import NFuzMatrix # нейронная сеть
-from NFuzMatrix import Points
-import os # работа с файлами
+import os
+import sys
+# Добавляем путь к директории проекта в sys.path
+project_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(project_directory)
+from NFuzMatrix import *
 import numpy as np
 import pickle  # сохрание и загрузка состояния нейросети
 
@@ -17,7 +20,7 @@ Y = ts[:,2]
 # X=np.array([[70, 3.8]])
 # Y=[69.64384]
 
-nfm = NFuzMatrix.NFM(X, Y)
+nfm = NFM(X, Y)
 nfm.defuzzification = "Simple"
 # nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 150, True)
@@ -41,7 +44,7 @@ r_3 = nfm.create_rule([p_temp_high], p_pressure_high, 1)
 r_4 = nfm.create_rule([p_flow_high], p_pressure_high, 1)
 
 # nfm.show_view()
-nfm.train(epochs=135, k=0.0001)
+nfm.train(epochs=70, k=0.0001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
@@ -54,8 +57,8 @@ pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78
 print(f"Значения давления: {pressure}")
 
 
-nfm.show_view()
-nfm.show_errors()
+nfm.show_view(True)
+nfm.show_errors(True)
 
 # сохранения состояния нейросети
 # with open('NeuFuzMatrix_model.pkl', 'wb') as f:

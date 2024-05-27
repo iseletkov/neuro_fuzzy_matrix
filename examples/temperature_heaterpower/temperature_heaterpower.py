@@ -1,13 +1,16 @@
-import NFuzMatrix # нейронная сеть
-from NFuzMatrix import Points
+import os
+import sys
+# Добавляем путь к директории проекта в sys.path
+project_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(project_directory)
+from NFuzMatrix import *
 
 # Пример использования кода:
 x = [[55], [50]]
 y = [60, 55]
 
-nfm = NFuzMatrix.NFM(x, y)
+nfm = NFM(x, y)
 nfm.defuzzification = "Simple"
-# nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 100, True)
 power = nfm.create_feature("Мощность нагревателя", "Вт", 0, 100, False)
 p_temp_low = nfm.create_predicate(f_temp, 'низкая', func = Points, params=[(0, 0), (0, 1), (100, 0)])
@@ -27,18 +30,7 @@ nfm.train(epochs=10, k=1)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
-
-# errors = np.array(nfm.Y)-np.array(nfm.matrix_y).flatten()
-# print("errors: ", errors)
 print("errors: ", nfm.errors)
-
-# pressure = nfm.predict(X)
-# print(f"Значения давления: {pressure}")
-
-# pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
-# print(f"Значения давления: {pressure}")
-
-# # print(nfm.X)
 
 nfm.show_view(True)
 nfm.show_errors(True)
