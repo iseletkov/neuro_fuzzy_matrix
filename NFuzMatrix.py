@@ -361,7 +361,7 @@ class NFM():
                         error1 = error / (self.Y[row] - out.centre)
                     else:
                         error1 = error / (self.Y[row] - out.const)
-                    # error=error/(out.feature.max-out.feature.min)
+
                     for input in inputs:
                         # значение смещения
                         dE_dP = k * error1 * rule.truth.truth * input.vector(input.feature.value).truth
@@ -392,27 +392,8 @@ class NFM():
                         self.errors[-3] < self.errors[-4]) and (self.errors[-5] > self.errors[-4]):
                     k = k * 0.9
 
-    # Графики принадлежности термов ЛП 
 
-    # def show_view(self):
-    #     lp=self.features_in
-    #     for feature in lp:
-    #         x=np.linspace(feature.min, feature.max, self.num)
-    #         fig, ax = plt.subplots(1, len(feature.predicates))
-    #         n=0
-    #         for predicate in feature.predicates:
-    #             f = predicate.params
-    #             x = [d[0] for d in f]
-    #             y = [d[1] for d in f]
-    #             ax[n].set(xlabel=feature.units, ylabel = "Степень принадлежности")
-    #             ax[n].set_title(feature.name+f" '{predicate.name}'")
-    #             fig.set_figwidth(8)
-    #             fig.set_figheight(3)
-    #             ax[n].plot(x, y, clip_on = False)
-    #             plt.tight_layout()
-    #             n+=1
-    #         plt.show()
-
+    # Графики принадлежности термов входных ЛП
     def show_view(self, block=False):
         lp = self.features_in
         for feature in lp:
@@ -432,6 +413,7 @@ class NFM():
                 plt.tight_layout()
                 n += 1
             plt.show(block=block)
+
 
     # График метрики RSME или MSE
     def show_errors(self, block=False):
