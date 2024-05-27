@@ -1,5 +1,5 @@
-import NFuzMatrix2 # нейронная сеть
-from NFuzMatrix2 import Points
+import NFuzMatrix # нейронная сеть
+from NFuzMatrix import Points
 import os # работа с файлами
 import numpy as np
 import pickle  # сохрание и загрузка состояния нейросети 
@@ -17,7 +17,7 @@ Y = ts[:,2]
 # X=np.array([[70, 3.8]])
 # Y=[69.64384]
 
-nfm = NFuzMatrix2.NFM(X, Y)
+nfm = NFuzMatrix.NFM(X, Y)
 nfm.defuzzification = "Simple"
 # nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 150, True)
@@ -45,9 +45,6 @@ nfm.train(epochs=135, k=0.0001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
-
-# errors = np.array(nfm.Y)-np.array(nfm.matrix_y).flatten()
-# print("errors: ", errors)
 print("errors: ", nfm.errors)
 
 # pressure = nfm.predict(X)
@@ -56,7 +53,6 @@ print("errors: ", nfm.errors)
 pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
 print(f"Значения давления: {pressure}")
 
-# # print(nfm.X)
 
 nfm.show_view()
 nfm.show_errors()
