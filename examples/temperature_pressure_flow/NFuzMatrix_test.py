@@ -2,7 +2,7 @@ import NFuzMatrix # нейронная сеть
 from NFuzMatrix import Points
 import os # работа с файлами
 import numpy as np
-import pickle  # сохрание и загрузка состояния нейросети 
+import pickle  # сохрание и загрузка состояния нейросети
 
 # Пример использования кода:
 # Текущая директория
@@ -60,6 +60,3 @@ nfm.show_errors()
 # сохранения состояния нейросети
 # with open('NeuFuzMatrix_model.pkl', 'wb') as f:
 #     pickle.dump(nfm, f)
-
-
-
