@@ -1,11 +1,11 @@
-import NFuzMatrix2 # нейронная сеть
-from NFuzMatrix2 import Points
+import NFuzMatrix # нейронная сеть
+from NFuzMatrix import Points
 
 # Пример использования кода:
 x = [[55], [50]]
 y = [60, 55]
 
-nfm = NFuzMatrix2.NFM(x, y)
+nfm = NFuzMatrix.NFM(x, y)
 nfm.defuzzification = "Simple"
 # nfm.defuzzification = "Centroid"
 f_temp = nfm.create_feature("Температура", "C", 0, 100, True)
