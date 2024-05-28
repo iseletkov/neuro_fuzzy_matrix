@@ -236,8 +236,7 @@ class NFM():
         self.X = np.array(copy.copy(X))  # X
         self.Y = np.array(copy.copy(Y))  # Y
         self.defuzzification = None  # Centroid or Simple
-        self.errors = []  # MSE
-        self.predictedValues = []  # конечные обученные значения
+        self.errors = []  # RMSE
         self.residuals = []  # конечная разница результатов обучения
         self.features_in = []  # входные лп
         self.features_out = []  # выходные лп
@@ -326,7 +325,6 @@ class NFM():
                     predicates.centre = numerator / denominator
                     # print(features.name, predicates.name, predicates.centre)
 
-    # обучение mini-batch learning, stochastic gradient descent, обучение по каждому множеству
     # количество эпох обучения, точность обучения, скорость обучения
     def train(self, epochs=5, tolerance=1e-1, k=0.001):
         # Проверка соответствия переданных значений количеству входных признаков.
@@ -353,7 +351,6 @@ class NFM():
                 self.matrix_y.append(predicted)
                 # обратный проход и обновление
                 error = predicted - self.Y[row]
-                # if predicted is not np.nan:
                 for rule in self.rules:
                     inputs = rule.inputs
                     out = rule.output
@@ -376,7 +373,7 @@ class NFM():
             # функция потерь RMSE
             errors = np.sqrt(np.sum((np.array(self.Y) - np.array(self.matrix_y)) ** 2) / len(self.Y))
             # ошибка предсказания
-            residuals = np.array(self.Y) - np.array(self.matrix_y)
+            self.residuals = np.array(self.Y) - np.array(self.matrix_y)
             self.errors.append(errors)
             # проверка точности обучения 
             if errors < tolerance:
