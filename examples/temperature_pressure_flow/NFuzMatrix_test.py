@@ -43,7 +43,7 @@ r_2 = nfm.create_rule([p_temp_normal], p_pressure_normal, 1)
 r_3 = nfm.create_rule([p_temp_high], p_pressure_high, 1)
 r_4 = nfm.create_rule([p_flow_high], p_pressure_high, 1)
 
-nfm.show_view()
+# nfm.show_view()
 nfm.train(epochs=95, k=0.00001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
@@ -51,15 +51,15 @@ print("Ожидаемое: ", nfm.Y)
 print("errors: ", nfm.errors)
 
 
-file_path = os.path.join(current_dir, "test.txt")
-ts = np.loadtxt(file_path, usecols=[0,1,2])
-XX = ts[:,0:2]
-YY = ts[:,2]
-pressure = nfm.predict(XX)
-print(f"Значения давления: {pressure}")
-
-# pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
+# file_path = os.path.join(current_dir, "test.txt")
+# ts = np.loadtxt(file_path, usecols=[0,1,2])
+# XX = ts[:,0:2]
+# YY = ts[:,2]
+# pressure = nfm.predict(XX)
 # print(f"Значения давления: {pressure}")
+
+pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
+print(f"Значения давления: {pressure}")
 
 # import matplotlib.pyplot as plt
 # fig, ax = plt.subplots()
