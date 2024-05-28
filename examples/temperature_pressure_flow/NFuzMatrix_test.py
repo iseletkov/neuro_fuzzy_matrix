@@ -44,21 +44,19 @@ r_3 = nfm.create_rule([p_temp_high], p_pressure_high, 1)
 r_4 = nfm.create_rule([p_flow_high], p_pressure_high, 1)
 
 # nfm.show_view()
-nfm.train(epochs=100, k=0.00001)
+nfm.train(epochs=95, k=0.00001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
 print("errors: ", nfm.errors)
 
 
-# import matplotlib.pyplot as plt
-# # y1 = [1, 3, 6, 8, 12]
-# # y2 = [1, 3, 5, 7, 11]
-# fig, ax = plt.subplots()
-# ax.plot(range(len(nfm.Y)), nfm.Y, label='Ожидаемые параметры')
-# ax.plot(range(len(nfm.matrix_y)), nfm.matrix_y, label='Полученные алгоритмом')
-# ax.legend()
-# plt.show()
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot(range(len(nfm.Y)), nfm.Y, label='Ожидаемые параметры')
+ax.plot(range(len(nfm.matrix_y)), nfm.matrix_y, label='Полученные алгоритмом')
+ax.legend()
+plt.show()
 
 
 # pressure = nfm.predict(X)
