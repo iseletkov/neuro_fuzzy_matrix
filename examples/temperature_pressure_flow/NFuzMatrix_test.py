@@ -51,22 +51,22 @@ print("Ожидаемое: ", nfm.Y)
 print("errors: ", nfm.errors)
 
 
-# file_path = os.path.join(current_dir, "test.txt")
-# ts = np.loadtxt(file_path, usecols=[0,1,2])
-# XX = ts[:,0:2]
-# YY = ts[:,2]
-# pressure = nfm.predict(XX)
-# print(f"Значения давления: {pressure}")
-
-pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
+file_path = os.path.join(current_dir, "test.txt")
+ts = np.loadtxt(file_path, usecols=[0,1,2])
+XX = ts[:,0:2]
+YY = ts[:,2]
+pressure = nfm.predict(XX)
 print(f"Значения давления: {pressure}")
 
-# import matplotlib.pyplot as plt
-# fig, ax = plt.subplots()
-# ax.plot(range(len(YY)), YY, label='Ожидаемые параметры')
-# ax.plot(range(len(pressure)), pressure, label='Полученные алгоритмом')
-# ax.legend()
-# plt.show()
+# pressure = nfm.predict(np.array([[84, 7], [30, 4.8], [28, 2.2]]))  #85.06422, 78.0, 27.17808
+# print(f"Значения давления: {pressure}")
+
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot(range(len(YY)), YY, label='Ожидаемые значения')
+ax.plot(range(len(pressure)), pressure, label='Вычисленные значения')
+ax.legend()
+plt.show()
 
 nfm.show_view(True)
 nfm.show_errors(True)
