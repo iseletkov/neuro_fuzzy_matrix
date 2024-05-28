@@ -134,7 +134,7 @@ class FuzzyPredicate():
         # Для центроидного метода дефаззификации
         self.func = func
         self.params = params
-        centre = None
+        self.centre = None
         # Для упрощённого метода дефаззификации
         self.const = const
 

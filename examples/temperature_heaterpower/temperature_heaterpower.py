@@ -23,8 +23,6 @@ r_1 = nfm.create_rule([p_temp_low], power_high, 1)
 r_2 = nfm.create_rule([p_temp_high], power_low, 1)
 
 nfm.show_view()
-print("Вычисленное: ", nfm.matrix_y)
-print("Ожидаемое: ", nfm.Y)
 
 nfm.train(epochs=10, k=1)
 print("Вычисленное: ", nfm.matrix_y)
