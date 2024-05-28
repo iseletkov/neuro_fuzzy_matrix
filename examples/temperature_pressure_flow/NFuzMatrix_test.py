@@ -44,7 +44,7 @@ r_3 = nfm.create_rule([p_temp_high], p_pressure_high, 1)
 r_4 = nfm.create_rule([p_flow_high], p_pressure_high, 1)
 
 # nfm.show_view()
-nfm.train(epochs=95, k=0.00001)
+nfm.train(epochs=150, k=0.00001)
 print("Вычисленное: ", nfm.matrix_y)
 print("Ожидаемое: ", nfm.Y)
 
