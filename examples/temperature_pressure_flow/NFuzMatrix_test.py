@@ -12,7 +12,7 @@ import pickle  # сохрание и загрузка состояния ней�
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Путь к файлу относительно текущей директории
-file_path = os.path.join(current_dir, "output.txt")
+file_path = os.path.join(current_dir, "train_set.txt")
 
 ts = np.loadtxt(file_path, usecols=[0,1,2])
 X = ts[:,0:2]
