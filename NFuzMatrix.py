@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import copy
 import math
-import pickle  # сохрание и загрузка состояния нейросети 
-import os  # работа с файлами
+import logging
+from tqdm import trange
 
 
 # линия
@@ -12,7 +12,7 @@ def curve(bottom, top, x):
 
 
 # трапеция
-def Trapeze(bottom_left, top_left, top_right, bottom_right):
+def trapeze(bottom_left, top_left, top_right, bottom_right):
     def own(x):
         if (top_left <= x <= top_right):
             return 1
@@ -26,13 +26,13 @@ def Trapeze(bottom_left, top_left, top_right, bottom_right):
 
 
 # треугольник
-def Triangle(bottom_left, peak, bottom_right):
+def triangle(bottom_left, peak, bottom_right):
     def own(x):
-        if (x == peak):
+        if x == peak:
             return 1
-        if (bottom_left <= x < peak):
+        if bottom_left <= x < peak:
             return curve(bottom_left, peak, x)
-        if (peak < x <= bottom_right):
+        if peak < x <= bottom_right:
             return curve(bottom_right, peak, x)
         return 0
 
@@ -41,35 +41,48 @@ def Triangle(bottom_left, peak, bottom_right):
 
 # Гауссовская
 # a – координата максимума функции принадлежности; b – коэффициент концентрации функции принадлежности
-def Gauss(a, b):
+def gauss(a, b):
     def own(x):
-        if (b > 0):
+        if b > 0:
             return math.exp(-(x - a) ** 2 / (2 * b ** 2))
         return 0
 
     return own
 
 
-# Задание функции с помощью ломанных
-def Points(list_point):
-    x = np.array([d[0] for d in list_point])
-    y = np.array([d[1] for d in list_point])
+# Кусочно-линейная функция
+def piecewise(xarr, **kwargs):
+    yarr = []
+    points = kwargs["points"]
+    x1 = points[0][0]
+    x2 = points[1][0]
+    idx = 1
+    for x_val in xarr:
+        if x_val < x1:
+            yarr.append(0)
+            continue
+        while x_val > x2 and idx < len(points)-1:
+            idx += 1
+            x1 = x2
+            x2 = points[idx][0]
 
-    def own(x_val):
-        idx = np.searchsorted(x, x_val, side='right')
-        if idx == 0:
-            return y[0]
-        if idx == len(x):
-            return y[-1]
-        x1, x2 = x[idx - 1], x[idx]
-        y1, y2 = y[idx - 1], y[idx]
-        return y1 + (x_val - x1) * (y2 - y1) / (x2 - x1)
+        if x_val > x2:
+            k = len(yarr)
+            for i in range(len(xarr)-k):
+                yarr.append(0)
+            break
 
-    return own
+        if x_val == x1:
+            yarr.append(points[idx - 1][1])
+            continue
+
+        y1, y2 = points[idx - 1][1], points[idx][1]
+        yarr.append(y1 + (x_val - x1) * (y2 - y1) / (x2 - x1))
+    return yarr
 
 
 # нечеткий вектор
-class FuzzyVector():
+class FuzzyVector:
     def __init__(self, positive):
         self.truth = positive
 
@@ -109,14 +122,15 @@ def disjunction(vectors):
 
 
 # лингвистическая переменная
-class Feature():
+class Feature:
     def __init__(self, name, units, min, max, inout):
         self.name = name
         self.units = units
         self.min = min
         self.max = max
+        self.size = max-min
         self.predicates = []
-        self.linspace = None
+        self.linspace = np.linspace(self.min, self.max, 200)
         # Входной или рассчётный признак.
         self.inout = inout
         # Текущее значение для входных признаков
@@ -127,16 +141,56 @@ class Feature():
 
 
 # термы ЛП
-class FuzzyPredicate():
-    def __init__(self, feature: Feature, name, func=None, params=None, const=None):
+class FuzzyPredicate:
+    def __init__(self, feature: Feature, name, const=None, func=None, **kwargs):
         self.feature: Feature = feature
         self.name = name
-        # Для центроидного метода дефаззификации
-        self.func = func
-        self.params = params
         self.centre = None
         # Для упрощённого метода дефаззификации
         self.const = const
+        if const is None:
+            self.__init_points__(func, **kwargs)
+
+    def __init_points__(self, func, **kwargs):
+        self.yarr = func(self.feature.linspace, **kwargs)
+
+    def __get_value__(self, x_val):
+        points_x = self.feature.linspace
+        idx = np.searchsorted(points_x, x_val, side='right')
+        if idx == 0:
+            return self.yarr[0]
+        if idx == len(points_x):
+            return self.yarr[-1]
+        x1, x2 = points_x[idx - 1], points_x[idx]
+        y1, y2 = self.yarr[idx - 1], self.yarr[idx]
+        return y1 + (x_val - x1) * (y2 - y1) / (x2 - x1)
+
+    # обновление точек функции истинности
+    def update_func(self, x_val, dedp):
+        points_x = self.feature.linspace
+
+        for idx in range(len(points_x)-1):
+            if points_x[idx] <= x_val < points_x[idx + 1]:
+                if idx > 1:
+                    yy = min(self.yarr[idx-1] + dedp*0.5, 1)
+                    y = max(yy, 0)
+                    self.yarr[idx-1] = y
+
+                yy = min(self.yarr[idx] + dedp, 1)
+                y = max(yy, 0)
+                self.yarr[idx] = y
+
+                yy = min(self.yarr[idx+1] + dedp, 1)
+                y = max(yy, 0)
+                self.yarr[idx+1] = y
+
+                if idx < len(points_x)-1:
+                    yy = min(self.yarr[idx+2] + dedp*0.5, 1)
+                    y = max(yy, 0)
+                    self.yarr[idx+2] = y
+
+                break
+        return
 
     def scalar(self, x=None):
         if x is None:
@@ -145,18 +199,17 @@ class FuzzyPredicate():
             else:
                 return self.const
 
-        if self.func is None:
+        if self.yarr is None:
             raise ValueError(f"Function for predicate {self.feature.name} '{self.name}' is not specified!")
 
-        f = self.func(self.params)
-        return f(x)
+        return self.__get_value__(x)
 
     def vector(self, x=None):
         return FuzzyVector(self.scalar(x))
 
 
 # правила 
-class Rule():
+class Rule:
     def __init__(self, input_pridicates, output_pridicate, weight):
         self.inputs = input_pridicates
         self.output = output_pridicate
@@ -172,67 +225,8 @@ class Rule():
         return text
 
 
-class Matrix():
-    # агрегирование подусловий
-    def __aggregation__(nfm):
-        for rule in nfm.rules:
-            inputs = rule.inputs
-            rule.truth = conjunction([input.vector(input.feature.value) for input in inputs])
-
-    # Активизация подзаключений
-    def __activisation__(nfm):
-        for rule in nfm.rules:
-            rule.truth = rule.truth.implication(FuzzyVector(rule.weight))
-
-    # Композиция и дефаззификация программно реализуются внутри одного цикла,
-    # поэтому их надо писать внутри одной функции.
-    def calculate(nfm):
-        Matrix.__aggregation__(nfm)
-        Matrix.__activisation__(nfm)
-
-        # В общем виде, у алгоритма может быть несколько выходных переменных, для каждого выходного признака.
-        # Поэтому на выходе должен быть массив.
-        result = None
-        for feature_out in nfm.features_out:
-
-            rules = feature_out.rules
-            if len(rules) == 0:
-                print(f"There is no rules for target feature: {feature_out.name}")
-                result = np.nan
-                continue
-
-            numerator = 0
-            denominator = 0
-
-            # Метод дефазификации с помощью расчёта центра масс.
-            if nfm.defuzzification == "Centroid":
-                # Формируем набор значений из области значений выходного признака для расчёта интеграла.
-                xarr = feature_out.linspace
-                for x in xarr:
-                    y = (disjunction([rule.output.vector(x).conjunction(rule.truth) for rule in rules])).truth
-                    numerator += x * y
-                    denominator += y
-                    # Упрощённый метод дефазификации
-            elif nfm.defuzzification == "Simple":
-                for rule in rules:
-                    numerator += (rule.output.vector().conjunction(rule.truth)).truth
-                    # rule.truth - степень реализации правила в виде вектора, 
-                    # rule.truth.truth - истинностная координата вектора степени реализации правила.
-                    # print("rule.truth: ", rule.truth)
-                    # print("rule.truth.truth: ", rule.truth.truth)
-                    denominator += rule.truth.truth
-
-            if denominator != 0:
-                result = numerator / denominator
-            else:
-                # Ни одно из правил не выполнилось.
-                result = np.nan
-
-        return result
-
-
-class NFM():
-    def __init__(self, X, Y):
+class NFM:
+    def __init__(self, X, Y, level=logging.INFO):
         self.X = np.array(copy.copy(X))  # X
         self.Y = np.array(copy.copy(Y))  # Y
         self.defuzzification = None  # Centroid or Simple
@@ -241,22 +235,91 @@ class NFM():
         self.features_in = []  # входные лп
         self.features_out = []  # выходные лп
         self.rules = []  # список правил
-        self.num = 100
+        self.num = 200
         self.matrix_y = []
+
+        self.logger = logging.getLogger("NFM")
+        self.logger.setLevel(level)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        self.logger.addHandler(ch)
+
+    # агрегирование подусловий
+    def __aggregation__(self):
+        for rule in self.rules:
+            inputs = rule.inputs
+            rule.truth = conjunction([input.vector(input.feature.value) for input in inputs])
+
+    # Активизация подзаключений
+    def __activisation__(self):
+        for rule in self.rules:
+            rule.truth = rule.truth.implication(FuzzyVector(rule.weight))
+
+    # Композиция и дефаззификация программно реализуются внутри одного цикла,
+    # поэтому их надо писать внутри одной функции.
+    def calculate(self):
+        self.__aggregation__()
+        self.__activisation__()
+
+        # В общем виде, у алгоритма может быть несколько выходных переменных, для каждого выходного признака.
+        # Поэтому на выходе должен быть массив.
+        result = None
+        for feature_out in self.features_out:
+
+            rules = feature_out.rules
+            if len(rules) == 0:
+                # print(f"There is no rules for target feature: {feature_out.name}")
+                self.logger.error(
+                    "There is no rules for target feature: {feature_out.name}"
+                )
+                result = np.nan
+                continue
+
+            numerator = 0
+            denominator = 0
+
+            # Метод дефазификации с помощью расчёта центра масс.
+            if self.defuzzification == "Centroid":
+                # Формируем набор значений из области значений выходного признака для расчёта интеграла.
+                xarr = feature_out.linspace
+                for x in xarr:
+                    y = (disjunction([rule.output.vector(x).conjunction(rule.truth) for rule in rules])).truth
+                    numerator += x * y
+                    denominator += y
+                    # Упрощённый метод дефазификации
+            elif self.defuzzification == "Simple":
+                for rule in rules:
+                    numerator += (rule.output.vector().conjunction(rule.truth)).truth
+                    # rule.truth - степень реализации правила в виде вектора,
+                    # rule.truth.truth - истинностная координата вектора степени реализации правила.
+                    # print("rule.truth: ", rule.truth)
+                    # print("rule.truth.truth: ", rule.truth.truth)
+                    denominator += rule.truth.truth
+
+            if denominator != 0:
+                result = numerator / denominator
+            else:
+                rules[0].inputs[0].vector(8.51)
+
+                # Ни одно из правил не выполнилось.
+                self.logger.debug("No rule found: " + (
+                    ', '.join(f"{feature.name}: {feature.value}" for feature in self.features_in)))
+                result = np.nan
+
+        return result
 
     def create_feature(self, name, units, min, max, inout):
         feature = Feature(name, units, min, max, inout)
         if inout:
             self.features_in.append(feature)
         else:
-            feature.linspace = np.linspace(feature.min, feature.max, self.num)
             self.features_out.append(feature)
         return feature
 
-    def create_predicate(self, feature: Feature, name, func=None, params=None, const=None):
+    def create_predicate(self, feature: Feature, name, const=None, func=None, **kwargs):
         # Проверка, что признак принадлежит данной системе.
-        if (feature in self.features_in or feature in self.features_out):
-            predicate = FuzzyPredicate(feature, name, func, params, const)
+        if feature in self.features_in or feature in self.features_out:
+            predicate = FuzzyPredicate(feature, name, const, func, **kwargs)
             feature.predicates.append(predicate)
             return predicate
         else:
@@ -279,37 +342,20 @@ class NFM():
 
     def predict(self, x):
         # Проверка соответствия переданных значений количеству входных признаков.
-        if (len(x[0, :]) != len(self.features_in)):
+        if len(x[0, :]) != len(self.features_in):
             raise Exception("Not matching the number of input parameters.")
 
         y = []
         for row in range(len(x[:, 0])):
             n = 0
             for feature in self.features_in:
-                if (feature.min <= x[row, :][n] <= feature.max):
+                if feature.min <= x[row, :][n] <= feature.max:
                     feature.value = x[row, :][n]
                     n += 1
                 else:
                     raise Exception(f"The value of the '{feature.name}' does not match the range.")
-            y.append(Matrix.calculate(self))
+            y.append(self.calculate())
         return y
-
-    # обновление точек функции принадлежности или добавление новой
-    def update_or_insert(self, params, x, dE_dP):
-        for i, (f, s) in enumerate(params):
-            if f == x:
-                Yy = min(s + dE_dP, 1)
-                y = max(Yy, 0)
-                params[i] = (x, y)
-                break
-        else:
-            f = Points(params)
-            y = f(x)
-            Yy = min(y + dE_dP, 1)
-            y = max(y, 0)
-            params.append((x, y))
-        params.sort(key=lambda x: x[0])
-        return params
 
     def centre_mass_out(self):
         for features in self.features_out:
@@ -328,50 +374,80 @@ class NFM():
     # количество эпох обучения, точность обучения, скорость обучения
     def train(self, epochs=5, tolerance=1e-1, k=0.001):
         # Проверка соответствия переданных значений количеству входных признаков.
-        if (len(self.X[0, :]) != len(self.features_in)):
+        if len(self.X[0, :]) != len(self.features_in):
             raise Exception("Not matching the number of input parameters.")
 
         convergence = False
         epoch = 0
+        n = 0
         self.centre_mass_out()
+
+        # Расчёт исходного значения метрики до обучения.
+        matrix_y = []
+        for row in range(len(self.X[:, 0])):
+            n = 0
+            # прямой проход
+            for feature in self.features_in:
+                if feature.min <= self.X[row, :][n] <= feature.max:
+                    feature.value = self.X[row, :][n]
+                    n += 1
+                else:
+                    raise Exception(f"The value of the '{feature.name}' does not match the range.")
+            if self.features_in[0].value==8.57:
+                xxx = 0
+            predicted = self.calculate()
+            matrix_y.append(predicted)
+        # функция потерь RMSE
+        errors = np.sqrt(np.sum((np.array(self.Y) - np.array(matrix_y)) ** 2) / len(self.Y))
+
         while (epoch < epochs) and (convergence is not True):
             self.matrix_y = []
+            pbar = trange(len(self.X[:, 0]))
+            pbar.set_description(f"Epoch {epoch+1: >5} ")
+            pbar.set_postfix_str(f"RMSE: {round(errors, 5)}")
             # проход по каждому множеству
-            for row in range(len(self.X[:, 0])):
+            for row in pbar:
                 n = 0
                 # прямой проход
                 for feature in self.features_in:
-                    if (feature.min <= self.X[row, :][n] <= feature.max):
+                    if feature.min <= self.X[row, :][n] <= feature.max:
                         feature.value = self.X[row, :][n]
                         n += 1
                     else:
                         raise Exception(f"The value of the '{feature.name}' does not match the range.")
 
-                predicted = Matrix.calculate(self)
+                predicted = self.calculate()
                 self.matrix_y.append(predicted)
+
+                if 10.55 <= self.features_in[0].value <= 10.87:
+                    xxx=1
                 # обратный проход и обновление
                 error = predicted - self.Y[row]
                 for rule in self.rules:
                     inputs = rule.inputs
                     out = rule.output
+
+                    error1 = error / (out.feature.size**2)
+
                     if out.const is None:
-                        error1 = error / (self.Y[row] - out.centre)
+                        error1 *= (out.feature.size - (out.centre - predicted))
                     else:
-                        error1 = error / (self.Y[row] - out.const)
+                        error1 *= (out.feature.size - (out.const - predicted))
 
                     for input in inputs:
                         # значение смещения
-                        dE_dP = k * error1 * rule.truth.truth * input.vector(input.feature.value).truth
+                        dedp = k * error1 * input.vector(input.feature.value).truth
+                        # * rule.truth.truth
+
                         # обновление графика
-                        params = input.params
-                        params = self.update_or_insert(params, input.feature.value, dE_dP)
-                        input.params = params
+                        input.update_func(input.feature.value, dedp)
 
             epoch += 1
             # функция потерь MSE
             # errors = np.sum((np.array(self.Y)-np.array(self.matrix_y))**2)/len(self.Y)
             # функция потерь RMSE
             errors = np.sqrt(np.sum((np.array(self.Y) - np.array(self.matrix_y)) ** 2) / len(self.Y))
+
             # ошибка предсказания
             self.residuals = np.array(self.Y) - np.array(self.matrix_y)
             self.errors.append(errors)
@@ -389,28 +465,31 @@ class NFM():
                         self.errors[-3] < self.errors[-4]) and (self.errors[-5] > self.errors[-4]):
                     k = k * 0.9
 
+            self.show_view(True)
 
     # Графики принадлежности термов входных ЛП
     def show_view(self, block=False):
         lp = self.features_in
-        for feature in lp:
-            x = np.linspace(feature.min, feature.max, self.num)
-            fig, ax = plt.subplots(1, len(feature.predicates))
-            n = 0
-            for predicate in feature.predicates:
-                y = []
-                for xx in x:
-                    f = predicate.func(predicate.params)
-                    y.append(f(xx))
-                ax[n].set(xlabel=feature.units, ylabel="Степень принадлежности")
-                ax[n].set_title(feature.name + f" '{predicate.name}'")
-                fig.set_figwidth(8)
-                fig.set_figheight(3)
-                ax[n].plot(x, y, clip_on=False)
-                plt.tight_layout()
-                n += 1
-            plt.show(block=block)
 
+        flagMultiple = len(lp) > 1
+        fig, ax = plt.subplots(len(lp))
+        fig.set_figwidth(10)
+        fig.set_figheight(5)
+        n = 0
+        for feature in lp:
+            if flagMultiple:
+                axx = ax[n]
+            else:
+                axx = ax
+            axx.set(xlabel=feature.units, ylabel="Степень истинности, доли от полной истинности")
+            axx.set_title(feature.name)
+            x = feature.linspace
+            for predicate in feature.predicates:
+                y = predicate.yarr
+                axx.plot(x, y, clip_on=False)
+            n += 1
+        plt.tight_layout()
+        plt.show(block=block)
 
     # График метрики RSME или MSE
     def show_errors(self, block=False):
